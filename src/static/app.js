@@ -4,14 +4,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // helper to avoid inserting raw HTML from user data
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
       const response = await fetch("/activities");
       const activities = await response.json();
 
-      // Clear loading message
+      // Clear loading message and reset select (keep placeholder)
       activitiesList.innerHTML = "";
+      // Remove existing dynamic options (preserve first placeholder)
+      while (activitySelect.options.length > 1) {
+        activitySelect.remove(1);
+      }
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -20,11 +35,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Build participants HTML
+        const participants = Array.isArray(details.participants) ? details.participants : [];
+        let participantsHtml = "";
+        if (participants.length === 0) {
+          participantsHtml = `<p class="no-participants">No participants yet</p>`;
+        } else {
+          participantsHtml = `<ul class="participants-list">${participants
+            .map((p) => `<li>${escapeHtml(p)}</li>`)
+            .join("")}</ul>`;
+        }
+
         activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <h4>${escapeHtml(name)}</h4>
+          <p>${escapeHtml(details.description)}</p>
+          <p><strong>Schedule:</strong> ${escapeHtml(details.schedule)}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+
+          <div class="participants">
+            <div class="participants-title">
+              <span>Participants</span>
+              <span class="participants-count">${participants.length}</span>
+            </div>
+            ${participantsHtml}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
