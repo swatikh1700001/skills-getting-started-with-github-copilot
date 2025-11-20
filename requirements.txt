@@ -4,3 +4,4 @@ uvicorn
 # Test dependencies
 pytest
 requests
+httpx
